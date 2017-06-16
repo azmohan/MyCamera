@@ -71,17 +71,20 @@ public class MainActivity extends AppCompatActivity {
 
         @Override
         public void onOpened(CameraDevice cameraDevice) {
-
+            mCameraDevice = cameraDevice;
+            createCameraPreview();
         }
 
         @Override
         public void onDisconnected(CameraDevice cameraDevice) {
-
+            mCameraDevice.close();
+            mCameraDevice = null;
         }
 
         @Override
         public void onError(CameraDevice cameraDevice, int i) {
-
+            mCameraDevice.close();
+            mCameraDevice = null;
         }
     };
 
@@ -92,21 +95,21 @@ public class MainActivity extends AppCompatActivity {
     }
 
     private Size getPreferredPreviewSize(Size[] sizes, int width, int height) {
-        List<Size> collctionSizes = new ArrayList<Size>();
+        List<Size> collectionSizes = new ArrayList<Size>();
         for (Size option : sizes) {
             if (width > height) {
                 if (option.getWidth() > width && option.getHeight() > height) {
-                    collctionSizes.add(option);
+                    collectionSizes.add(option);
                 }
             } else {
                 if (option.getHeight() > width && option.getWidth() > height) {
-                    collctionSizes.add(option);
+                    collectionSizes.add(option);
                 }
             }
         }
 
-        if (collctionSizes.size() > 0) {
-            return Collections.min(collctionSizes, new Comparator<Size>() {
+        if (collectionSizes.size() > 0) {
+            return Collections.min(collectionSizes, new Comparator<Size>() {
                 @Override
                 public int compare(Size s1, Size s2) {
                     return Long.signum(s1.getWidth() * s1.getHeight() - s2.getWidth() * s2.getHeight());
@@ -133,7 +136,7 @@ public class MainActivity extends AppCompatActivity {
             }
             mPreviewSize = getPreferredPreviewSize(map.getOutputSizes(SurfaceTexture.class), rotationWidth, rotationHeight);
             texture.setDefaultBufferSize(mPreviewSize.getWidth(), mPreviewSize.getHeight());
-            Log.i(TAG, "optimalSize width:" + mPreviewSize.getWidth() + ",height:" + mPreviewSize.getHeight());
+            Log.e(TAG, "optimalSize width:" + mPreviewSize.getWidth() + ",height:" + mPreviewSize.getHeight());
             Surface surface = new Surface(texture);
             mBuilder = mCameraDevice.createCaptureRequest(CameraDevice.TEMPLATE_PREVIEW);
             mBuilder.addTarget(surface);
@@ -165,12 +168,13 @@ public class MainActivity extends AppCompatActivity {
     private void getCameraId() {
         try {
             for (String cameraId : mCameraManager.getCameraIdList()) {
+                Log.e(TAG, "getCameraId cameraId:" + cameraId);
                 CameraCharacteristics characteristics = mCameraManager.getCameraCharacteristics(cameraId);
                 if (characteristics.get(CameraCharacteristics.LENS_FACING) == CameraCharacteristics.LENS_FACING_FRONT) {
                     continue;
                 }
                 mCameraId = cameraId;
-                return;
+//                return;
             }
         } catch (CameraAccessException e) {
             Log.e(TAG, "getCameraId exception : " + e.toString());
@@ -187,7 +191,7 @@ public class MainActivity extends AppCompatActivity {
         if (ActivityCompat.checkSelfPermission(this, Manifest.permission.CAMERA)
                 != PackageManager.PERMISSION_GRANTED && ActivityCompat.checkSelfPermission(this,
                 Manifest.permission.WRITE_EXTERNAL_STORAGE) != PackageManager.PERMISSION_DENIED) {
-            Log.i(TAG, "Lacking privileges to access camera service,please request permission first");
+            Log.e(TAG, "Lacking privileges to access camera service,please request permission first");
             ActivityCompat.requestPermissions(this, new String[]{
                     Manifest.permission.CAMERA, Manifest.permission.WRITE_EXTERNAL_STORAGE
             }, REQUEST_CAMERA_PERMISSION);
@@ -211,6 +215,7 @@ public class MainActivity extends AppCompatActivity {
             public void onSurfaceTextureAvailable(SurfaceTexture surfaceTexture, int width, int height) {
                 mWidth = width;
                 mHeight = height;
+                Log.e(TAG, "onSurfaceTextureAvailable width:" + width + ",height:" + height);
                 getCameraId();
                 openCamera();
 
